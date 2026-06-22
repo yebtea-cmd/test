@@ -200,8 +200,9 @@ const CallbackPage = () => {
   const [errorMessage, setErrorMessage] = useState(searchParams.get('error_description') || errorParam || 'Invalid Request');
 
   useEffect(() => {
+    // If we only need to display the code to copy it, we can stop the backend fetch, 
+    // or we can still do it. For now, let's keep the backend exchange but also show the code.
     if (code && status === 'processing') {
-      // Exchange the code for a token using the secure backend
       fetch('/api/tiktok-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -223,6 +224,13 @@ const CallbackPage = () => {
     }
   }, [code, status]);
 
+  const copyToClipboard = () => {
+    if (code) {
+      navigator.clipboard.writeText(code);
+      alert('Authorization Code copied to clipboard!');
+    }
+  };
+
   return (
     <div className="dashboard-layout">
       <div className="card text-center" style={{ padding: '4rem 2rem' }}>
@@ -233,6 +241,27 @@ const CallbackPage = () => {
         </div>
         <h2 className="mb-4">{status === 'error' ? 'Authentication Failed' : status === 'success' ? 'Authentication Successful' : 'Processing...'}</h2>
         
+        {code && (
+          <div className="mt-4 mb-8 text-left" style={{ maxWidth: 400, margin: '0 auto 2rem auto', background: 'var(--surface-light)', padding: '1.5rem', borderRadius: '8px' }}>
+            <label className="form-label" style={{ color: 'var(--secondary)' }}>Authorization Code</label>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <input 
+                type="text" 
+                className="form-control" 
+                value={code} 
+                readOnly 
+                style={{ flex: 1, fontFamily: 'monospace' }}
+              />
+              <button onClick={copyToClipboard} className="btn btn-primary" type="button">
+                Copy
+              </button>
+            </div>
+            <p className="text-muted mt-2" style={{ fontSize: '0.875rem' }}>
+              You can copy this code for manual testing or verification.
+            </p>
+          </div>
+        )}
+
         {status === 'success' ? (
           <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
             Successfully exchanged the authorization code for an access token via your secure Vercel API. You are now fully connected to CRMKG!
@@ -247,7 +276,7 @@ const CallbackPage = () => {
           </p>
         )}
 
-        <Link to="/content-post" className="btn btn-primary mt-4">
+        <Link to="/content-post" className="btn btn-outline mt-4">
           Go to Dashboard
         </Link>
       </div>
