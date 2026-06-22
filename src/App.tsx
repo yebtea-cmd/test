@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { LogIn, Video, CheckCircle, UploadCloud, PlayCircle, BarChart3, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import logoImg from './assets/images/logo.png';
 
 // --- Pages ---
@@ -65,7 +65,7 @@ const LoginKitPage = () => {
   const handleLogin = () => {
     setIsLoggingIn(true);
     
-    const CLIENT_KEY = 'sbawai0vsrgtqtuauz';
+    const CLIENT_KEY = import.meta.env.VITE_TIKTOK_CLIENT_KEY || 'sbawai0vsrgtqtuauz';
     const REDIRECT_URI = 'https://crmkg.vercel.app/callback';
     const csrfState = Math.random().toString(36).substring(2);
     
@@ -194,29 +194,56 @@ const CallbackPage = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const code = searchParams.get('code');
-  const error = searchParams.get('error');
+  const errorParam = searchParams.get('error');
+  
+  const [status, setStatus] = useState<'processing' | 'success' | 'error'>(errorParam ? 'error' : (code ? 'processing' : 'error'));
+  const [errorMessage, setErrorMessage] = useState(searchParams.get('error_description') || errorParam || 'Invalid Request');
+
+  useEffect(() => {
+    if (code && status === 'processing') {
+      // Exchange the code for a token using the secure backend
+      fetch('/api/tiktok-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          setStatus('error');
+          setErrorMessage(data.error_description || data.error);
+        } else {
+          setStatus('success');
+        }
+      })
+      .catch(err => {
+        setStatus('error');
+        setErrorMessage(err.message);
+      });
+    }
+  }, [code, status]);
 
   return (
     <div className="dashboard-layout">
       <div className="card text-center" style={{ padding: '4rem 2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: error ? 'rgba(255, 0, 80, 0.1)' : 'rgba(0, 242, 254, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: error ? 'var(--primary)' : 'var(--secondary)' }}>
+          <div style={{ width: 80, height: 80, borderRadius: '50%', background: status === 'error' ? 'rgba(255, 0, 80, 0.1)' : 'rgba(0, 242, 254, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: status === 'error' ? 'var(--primary)' : 'var(--secondary)' }}>
             <CheckCircle size={40} />
           </div>
         </div>
-        <h2 className="mb-4">{error ? 'Authentication Failed' : 'Authentication Successful'}</h2>
+        <h2 className="mb-4">{status === 'error' ? 'Authentication Failed' : status === 'success' ? 'Authentication Successful' : 'Processing...'}</h2>
         
-        {code ? (
+        {status === 'success' ? (
           <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
-            Successfully received authorization code from TikTok. You are now securely connected to CRMKG!
+            Successfully exchanged the authorization code for an access token via your secure Vercel API. You are now fully connected to CRMKG!
           </p>
-        ) : error ? (
+        ) : status === 'error' ? (
           <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
-            TikTok returned an error: {searchParams.get('error_description') || error}
+            TikTok returned an error: {errorMessage}
           </p>
         ) : (
           <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
-            Processing authentication...
+            Securely exchanging authorization code with the backend server...
           </p>
         )}
 
