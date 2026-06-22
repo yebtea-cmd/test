@@ -61,6 +61,18 @@ const HomePage = () => {
 
 const LoginKitPage = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [savedUser, setSavedUser] = useState<any>(null);
+
+  useEffect(() => {
+    const user = localStorage.getItem('tiktok_user');
+    if (user) {
+      try {
+        setSavedUser(JSON.parse(user));
+      } catch (e) {
+        console.error("Error parsing saved user", e);
+      }
+    }
+  }, []);
 
   const handleLogin = () => {
     setIsLoggingIn(true);
@@ -82,36 +94,64 @@ const LoginKitPage = () => {
   return (
     <div className="dashboard-layout">
       <div className="card text-center" style={{ padding: '4rem 2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,0,80,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-            <LogIn size={40} />
-          </div>
-        </div>
-        <h2 className="mb-4">Connect Your TikTok Account</h2>
-        <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto 2rem auto' }}>
-          Authorize CRMKG to manage your TikTok profile, read analytics, and publish videos directly to your feed.
-        </p>
+        {savedUser ? (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+               <img src={savedUser.avatar_url} alt="Profile" style={{ width: 100, height: 100, borderRadius: '50%', border: '3px solid var(--secondary)' }} />
+            </div>
+            <h2 className="mb-4">Welcome, {savedUser.display_name}!</h2>
+            <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto 2rem auto' }}>
+              Your TikTok Sandbox account is successfully connected to CRMKG. You can now manage your videos and analytics.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <Link to="/content-post" className="btn btn-primary">
+                Go to Dashboard
+              </Link>
+              <button 
+                className="btn btn-outline" 
+                onClick={() => {
+                  localStorage.removeItem('tiktok_user');
+                  setSavedUser(null);
+                }}
+              >
+                Disconnect Account
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+              <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,0,80,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                <LogIn size={40} />
+              </div>
+            </div>
+            <h2 className="mb-4">Connect Your TikTok Account</h2>
+            <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto 2rem auto' }}>
+              Authorize CRMKG to manage your TikTok profile, read analytics, and publish videos directly to your feed.
+            </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: 300, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'left', color: 'var(--text-muted)' }}>
-            <CheckCircle size={16} color="var(--secondary)" /> <span>Read profile info</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'left', color: 'var(--text-muted)' }}>
-            <CheckCircle size={16} color="var(--secondary)" /> <span>Publish videos</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'left', color: 'var(--text-muted)' }}>
-            <CheckCircle size={16} color="var(--secondary)" /> <span>Access analytics</span>
-          </div>
-        </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: 300, margin: '0 auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'left', color: 'var(--text-muted)' }}>
+                <CheckCircle size={16} color="var(--secondary)" /> <span>Read profile info</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'left', color: 'var(--text-muted)' }}>
+                <CheckCircle size={16} color="var(--secondary)" /> <span>Publish videos</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'left', color: 'var(--text-muted)' }}>
+                <CheckCircle size={16} color="var(--secondary)" /> <span>Access analytics</span>
+              </div>
+            </div>
 
-        <button
-          className="btn btn-primary mt-8"
-          style={{ width: '100%', maxWidth: 300 }}
-          onClick={handleLogin}
-          disabled={isLoggingIn}
-        >
-          {isLoggingIn ? 'Connecting...' : 'Log in with TikTok'}
-        </button>
+            <button
+              className="btn btn-primary mt-8"
+              style={{ width: '100%', maxWidth: 300 }}
+              onClick={handleLogin}
+              disabled={isLoggingIn}
+            >
+              {isLoggingIn ? 'Connecting...' : 'Log in with TikTok'}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -218,6 +258,7 @@ const CallbackPage = () => {
           setStatus('success');
           if (data.user) {
             setUserInfo(data.user);
+            localStorage.setItem('tiktok_user', JSON.stringify(data.user));
           }
         }
       })
