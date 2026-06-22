@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogIn, Video, CheckCircle, UploadCloud, PlayCircle, BarChart3, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import logoImg from './assets/images/logo.png';
@@ -406,8 +406,14 @@ const TermsPage = () => {
 
 const Navigation = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => location.pathname === path ? 'active' : '';
+
+  const handleAbsoluteNavigation = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
+    e.preventDefault();
+    navigate(path);
+  };
 
   return (
     <nav className="navbar">
@@ -424,12 +430,20 @@ const Navigation = () => {
         <Link to="/content-post" className={`nav-link ${isActive('/content-post')}`}>
           Content Post
         </Link>
-        <Link to="/privacy" className={`nav-link ${isActive('/privacy')}`}>
+        <a 
+          href="https://crmkg.vercel.app/privacy" 
+          className={`nav-link ${isActive('/privacy')}`}
+          onClick={(e) => handleAbsoluteNavigation(e, '/privacy')}
+        >
           Privacy
-        </Link>
-        <Link to="/terms" className={`nav-link ${isActive('/terms')}`}>
+        </a>
+        <a 
+          href="https://crmkg.vercel.app/terms" 
+          className={`nav-link ${isActive('/terms')}`}
+          onClick={(e) => handleAbsoluteNavigation(e, '/terms')}
+        >
           Terms
-        </Link>
+        </a>
       </div>
     </nav>
   );
