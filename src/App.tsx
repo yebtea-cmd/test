@@ -64,11 +64,19 @@ const LoginKitPage = () => {
 
   const handleLogin = () => {
     setIsLoggingIn(true);
-    // Simulate TikTok OAuth login redirect
-    setTimeout(() => {
-      alert("Redirecting to TikTok OAuth...");
-      setIsLoggingIn(false);
-    }, 1500);
+    
+    const CLIENT_KEY = 'sbawai0vsrgtqtuauz';
+    const REDIRECT_URI = 'https://crmkg.vercel.app/callback';
+    const csrfState = Math.random().toString(36).substring(2);
+    
+    let url = 'https://www.tiktok.com/v2/auth/authorize/';
+    url += `?client_key=${CLIENT_KEY}`;
+    url += '&scope=user.info.basic,video.upload,video.publish';
+    url += '&response_type=code';
+    url += `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+    url += `&state=${csrfState}`;
+    
+    window.location.href = url;
   };
 
   return (
@@ -183,18 +191,35 @@ const ContentPostPage = () => {
 };
 
 const CallbackPage = () => {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const code = searchParams.get('code');
+  const error = searchParams.get('error');
+
   return (
     <div className="dashboard-layout">
       <div className="card text-center" style={{ padding: '4rem 2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(0, 242, 254, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary)' }}>
+          <div style={{ width: 80, height: 80, borderRadius: '50%', background: error ? 'rgba(255, 0, 80, 0.1)' : 'rgba(0, 242, 254, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: error ? 'var(--primary)' : 'var(--secondary)' }}>
             <CheckCircle size={40} />
           </div>
         </div>
-        <h2 className="mb-4">Authentication Successful</h2>
-        <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
-          You have successfully connected your TikTok account to CRMKG. You can now close this window or return to the dashboard.
-        </p>
+        <h2 className="mb-4">{error ? 'Authentication Failed' : 'Authentication Successful'}</h2>
+        
+        {code ? (
+          <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
+            Successfully received authorization code from TikTok. You are now securely connected to CRMKG!
+          </p>
+        ) : error ? (
+          <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
+            TikTok returned an error: {searchParams.get('error_description') || error}
+          </p>
+        ) : (
+          <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
+            Processing authentication...
+          </p>
+        )}
+
         <Link to="/content-post" className="btn btn-primary mt-4">
           Go to Dashboard
         </Link>
