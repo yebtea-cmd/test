@@ -198,6 +198,7 @@ const CallbackPage = () => {
   
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>(errorParam ? 'error' : (code ? 'processing' : 'error'));
   const [errorMessage, setErrorMessage] = useState(searchParams.get('error_description') || errorParam || 'Invalid Request');
+  const [userInfo, setUserInfo] = useState<any>(null);
 
   useEffect(() => {
     // If we only need to display the code to copy it, we can stop the backend fetch, 
@@ -215,6 +216,9 @@ const CallbackPage = () => {
           setErrorMessage(data.error_description || data.error);
         } else {
           setStatus('success');
+          if (data.user) {
+            setUserInfo(data.user);
+          }
         }
       })
       .catch(err => {
@@ -263,9 +267,23 @@ const CallbackPage = () => {
         )}
 
         {status === 'success' ? (
-          <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
-            Successfully exchanged the authorization code for an access token via your secure Vercel API. You are now fully connected to CRMKG!
-          </p>
+          <>
+            {userInfo ? (
+              <div className="card mb-8" style={{ display: 'inline-flex', alignItems: 'center', gap: '1rem', padding: '1rem 2rem', background: 'var(--surface-light)' }}>
+                {userInfo.avatar_url && (
+                  <img src={userInfo.avatar_url} alt="Profile" style={{ width: 50, height: 50, borderRadius: '50%', border: '2px solid var(--secondary)' }} />
+                )}
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff' }}>{userInfo.display_name || 'TikTok User'}</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Connected Sandbox Account</div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
+                Successfully exchanged the authorization code for an access token via your secure Vercel API. You are now fully connected to CRMKG!
+              </p>
+            )}
+          </>
         ) : status === 'error' ? (
           <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
             TikTok returned an error: {errorMessage}

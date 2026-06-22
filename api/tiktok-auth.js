@@ -39,11 +39,23 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: data.error, error_description: data.error_description });
     }
 
-    // Securely received the access token!
-    // Normally you would save data.access_token to a database here.
+    const accessToken = data.access_token;
     
-    // Return success to the frontend
-    return res.status(200).json({ success: true, open_id: data.open_id });
+    // Fetch user profile from TikTok API
+    const userResponse = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    
+    const userData = await userResponse.json();
+
+    // Return success and user data to the frontend
+    return res.status(200).json({ 
+      success: true, 
+      open_id: data.open_id,
+      user: userData?.data?.user || null
+    });
     
   } catch (err) {
     console.error('Server error during token exchange:', err);
