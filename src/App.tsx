@@ -182,6 +182,27 @@ const ContentPostPage = () => {
   );
 };
 
+const CallbackPage = () => {
+  return (
+    <div className="dashboard-layout">
+      <div className="card text-center" style={{ padding: '4rem 2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+          <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(0, 242, 254, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary)' }}>
+            <CheckCircle size={40} />
+          </div>
+        </div>
+        <h2 className="mb-4">Authentication Successful</h2>
+        <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto' }}>
+          You have successfully connected your TikTok account to CRMKG. You can now close this window or return to the dashboard.
+        </p>
+        <Link to="/content-post" className="btn btn-primary mt-4">
+          Go to Dashboard
+        </Link>
+      </div>
+    </div>
+  );
+};
+
 const PrivacyPage = () => {
   return (
     <div className="legal-content">
@@ -285,6 +306,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/loginkit" element={<LoginKitPage />} />
           <Route path="/content-post" element={<ContentPostPage />} />
+          <Route path="/callback" element={<CallbackPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
         </Routes>
