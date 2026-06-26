@@ -83,7 +83,7 @@ const LoginKitPage = () => {
     
     let url = 'https://www.tiktok.com/v2/auth/authorize/';
     url += `?client_key=${CLIENT_KEY}`;
-    url += '&scope=user.info.basic';
+    url += '&scope=user.info.basic,video.publish';
     url += '&response_type=code';
     url += `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
     url += `&state=${csrfState}`;
@@ -126,19 +126,27 @@ const LoginKitPage = () => {
               </div>
             </div>
             <h2 className="mb-4">Connect Your TikTok Account</h2>
-            <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto 2rem auto' }}>
-              Authorize CRMKG to manage your TikTok profile, read analytics, and publish videos directly to your feed.
+            <p className="text-muted mb-6" style={{ maxWidth: 400, margin: '0 auto' }}>
+              Authorize CRMKG to manage your TikTok profile and publish content directly to your feed.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: 300, margin: '0 auto' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'left', color: 'var(--text-muted)' }}>
-                <CheckCircle size={16} color="var(--secondary)" /> <span>Read profile info</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'left', color: 'var(--text-muted)' }}>
-                <CheckCircle size={16} color="var(--secondary)" /> <span>Publish videos</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textAlign: 'left', color: 'var(--text-muted)' }}>
-                <CheckCircle size={16} color="var(--secondary)" /> <span>Access analytics</span>
+            <div style={{ background: 'var(--surface-light)', border: '1px solid var(--border)', borderRadius: '8px', padding: '1.5rem', maxWidth: 350, margin: '0 auto 2rem auto', textAlign: 'left' }}>
+              <strong style={{ display: 'block', marginBottom: '1rem' }}>Requested Scopes:</strong>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--text-muted)' }}>
+                  <CheckCircle size={18} color="var(--secondary)" style={{ flexShrink: 0, marginTop: '2px' }} /> 
+                  <div>
+                    <strong style={{ color: 'var(--text)', display: 'block', fontSize: '0.9rem' }}>user.info.basic</strong>
+                    <span style={{ fontSize: '0.85rem' }}>Read your profile info (avatar, display name)</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--text-muted)' }}>
+                  <CheckCircle size={18} color="var(--secondary)" style={{ flexShrink: 0, marginTop: '2px' }} /> 
+                  <div>
+                    <strong style={{ color: 'var(--text)', display: 'block', fontSize: '0.9rem' }}>video.publish</strong>
+                    <span style={{ fontSize: '0.85rem' }}>Publish videos and photos to your account</span>
+                  </div>
+                </div>
               </div>
             </div>
 
