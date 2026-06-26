@@ -4,17 +4,16 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { code } = req.body;
+  const { code, redirect_uri } = req.body;
 
   if (!code) {
     return res.status(400).json({ error: 'Missing authorization code' });
   }
 
   try {
-    // Read credentials from Vercel Environment Variables
     const clientKey = 'awkisbm5h330o786';
     const clientSecret = 'N3VXNsuwZLMa01SPLUgnjOgB2g3wl0Rq';
-    const redirectUri = 'https://crmkg.vercel.app/callback';
+    const redirectUri = redirect_uri || 'https://crmkg.vercel.app/callback';
 
     // Call TikTok's v2/oauth/token endpoint securely from the backend
     const response = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {

@@ -76,18 +76,18 @@ const LoginKitPage = () => {
 
   const handleLogin = () => {
     setIsLoggingIn(true);
-    
+
     const CLIENT_KEY = 'awkisbm5h330o786';
-    const REDIRECT_URI = 'https://crmkg.vercel.app/callback';
+    const REDIRECT_URI = `${window.location.origin}/callback`;
     const csrfState = Math.random().toString(36).substring(2);
-    
+
     let url = 'https://www.tiktok.com/v2/auth/authorize/';
     url += `?client_key=${CLIENT_KEY}`;
     url += '&scope=user.info.basic,video.publish';
     url += '&response_type=code';
     url += `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
     url += `&state=${csrfState}`;
-    
+
     window.location.href = url;
   };
 
@@ -97,18 +97,18 @@ const LoginKitPage = () => {
         {savedUser ? (
           <>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-               <img src={savedUser.avatar_url} alt="Profile" style={{ width: 100, height: 100, borderRadius: '50%', border: '3px solid var(--secondary)' }} />
+              <img src={savedUser.avatar_url} alt="Profile" style={{ width: 100, height: 100, borderRadius: '50%', border: '3px solid var(--secondary)' }} />
             </div>
             <h2 className="mb-4">Welcome, {savedUser.display_name}!</h2>
             <p className="text-muted mb-8" style={{ maxWidth: 400, margin: '0 auto 2rem auto' }}>
-              Your TikTok Sandbox account is successfully connected to CRMKG. You can now manage your videos and analytics.
+              Your TikTok account is successfully connected to CRMKG. You can now manage your videos and analytics.
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <Link to="/content-post" className="btn btn-primary">
                 Go to Dashboard
               </Link>
-              <button 
-                className="btn btn-outline" 
+              <button
+                className="btn btn-outline"
                 onClick={() => {
                   localStorage.removeItem('tiktok_user');
                   setSavedUser(null);
@@ -134,14 +134,14 @@ const LoginKitPage = () => {
               <strong style={{ display: 'block', marginBottom: '1rem' }}>Requested Scopes:</strong>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--text-muted)' }}>
-                  <CheckCircle size={18} color="var(--secondary)" style={{ flexShrink: 0, marginTop: '2px' }} /> 
+                  <CheckCircle size={18} color="var(--secondary)" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
                     <strong style={{ color: 'var(--text)', display: 'block', fontSize: '0.9rem' }}>user.info.basic</strong>
                     <span style={{ fontSize: '0.85rem' }}>Read your profile info (avatar, display name)</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--text-muted)' }}>
-                  <CheckCircle size={18} color="var(--secondary)" style={{ flexShrink: 0, marginTop: '2px' }} /> 
+                  <CheckCircle size={18} color="var(--secondary)" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
                     <strong style={{ color: 'var(--text)', display: 'block', fontSize: '0.9rem' }}>video.publish</strong>
                     <span style={{ fontSize: '0.85rem' }}>Publish videos and photos to your account</span>
@@ -183,12 +183,12 @@ const ContentPostPage = () => {
   const [allowComment, setAllowComment] = useState(false);
   const [allowDuet, setAllowDuet] = useState(false);
   const [allowStitch, setAllowStitch] = useState(false);
-  
+
   const [commercialToggle, setCommercialToggle] = useState(false);
   const [yourBrand, setYourBrand] = useState(false);
   const [brandedContent, setBrandedContent] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
-  
+
   const [consentChecked, setConsentChecked] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -215,7 +215,7 @@ const ContentPostPage = () => {
     if (user) {
       try {
         setSavedUser(JSON.parse(user));
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -245,18 +245,18 @@ const ContentPostPage = () => {
 
   let declarationText = "By posting, you agree to TikTok's Music Usage Confirmation.";
   if (commercialToggle && (brandedContent || yourBrand)) {
-     if (brandedContent) {
-       declarationText = "By posting, you agree to TikTok's Branded Content Policy and Music Usage Confirmation.";
-     } else {
-       declarationText = "By posting, you agree to TikTok's Music Usage Confirmation.";
-     }
+    if (brandedContent) {
+      declarationText = "By posting, you agree to TikTok's Branded Content Policy and Music Usage Confirmation.";
+    } else {
+      declarationText = "By posting, you agree to TikTok's Music Usage Confirmation.";
+    }
   }
 
-  const isPublishDisabled = 
-    isUploading || 
-    !privacyLevel || 
+  const isPublishDisabled =
+    isUploading ||
+    !privacyLevel ||
     needsAuditPrivacy ||
-    (commercialToggle && !yourBrand && !brandedContent) || 
+    (commercialToggle && !yourBrand && !brandedContent) ||
     !consentChecked;
 
   const publishDisabledMessage = needsAuditPrivacy
@@ -270,7 +270,7 @@ const ContentPostPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isPublishDisabled) return;
-    
+
     if (needsAuditPrivacy) {
       alert(AUDIT_PRIVACY_MESSAGE);
       return;
@@ -327,11 +327,11 @@ const ContentPostPage = () => {
                   <p className="text-muted mt-2">{postType === 'video' ? 'MP4 or WebM, up to 10 minutes' : 'JPG or PNG image'}</p>
                   <label className="btn btn-outline mt-4" style={{ cursor: 'pointer', display: 'inline-block' }}>
                     Select File
-                    <input 
-                      type="file" 
-                      accept={postType === 'video' ? 'video/mp4,video/webm' : 'image/jpeg,image/png'} 
-                      onChange={handleFileChange} 
-                      style={{ display: 'none' }} 
+                    <input
+                      type="file"
+                      accept={postType === 'video' ? 'video/mp4,video/webm' : 'image/jpeg,image/png'}
+                      onChange={handleFileChange}
+                      style={{ display: 'none' }}
                     />
                   </label>
                 </>
@@ -422,7 +422,7 @@ const ContentPostPage = () => {
               Disclose Commercial Content
             </label>
             <p className="text-muted mt-2" style={{ fontSize: '0.9rem' }}>Indicate whether this content promotes yourself, a brand, product or service.</p>
-            
+
             {commercialToggle && (
               <div className="mt-4" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', paddingLeft: '1.5rem', borderLeft: '2px solid var(--primary)' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} title="Your photo/video will be labeled as 'Promotional content'">
@@ -462,12 +462,12 @@ const ContentPostPage = () => {
           )}
 
           <div className="form-group mt-6" style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem', cursor: 'pointer', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px' }}>
-               <input type="checkbox" checked={consentChecked} onChange={(e) => setConsentChecked(e.target.checked)} style={{ marginTop: '4px', accentColor: 'var(--primary)', transform: 'scale(1.2)' }} required />
-               <span style={{ fontSize: '0.95rem', fontWeight: '500', color: 'var(--text)' }}>
-                 {declarationText}
-               </span>
-             </label>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem', cursor: 'pointer', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px' }}>
+              <input type="checkbox" checked={consentChecked} onChange={(e) => setConsentChecked(e.target.checked)} style={{ marginTop: '4px', accentColor: 'var(--primary)', transform: 'scale(1.2)' }} required />
+              <span style={{ fontSize: '0.95rem', fontWeight: '500', color: 'var(--text)' }}>
+                {declarationText}
+              </span>
+            </label>
           </div>
 
           <div className="mt-8" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
@@ -493,7 +493,7 @@ const CallbackPage = () => {
   const searchParams = new URLSearchParams(location.search);
   const code = searchParams.get('code');
   const errorParam = searchParams.get('error');
-  
+
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>(errorParam ? 'error' : (code ? 'processing' : 'error'));
   const [errorMessage, setErrorMessage] = useState(searchParams.get('error_description') || errorParam || 'Invalid Request');
   const [userInfo, setUserInfo] = useState<any>(null);
@@ -502,28 +502,29 @@ const CallbackPage = () => {
     // If we only need to display the code to copy it, we can stop the backend fetch, 
     // or we can still do it. For now, let's keep the backend exchange but also show the code.
     if (code && status === 'processing') {
+      const redirectUri = `${window.location.origin}/callback`;
       fetch('/api/tiktok-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
+        body: JSON.stringify({ code, redirect_uri: redirectUri })
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          setStatus('error');
-          setErrorMessage(data.error_description || data.error);
-        } else {
-          setStatus('success');
-          if (data.user) {
-            setUserInfo(data.user);
-            localStorage.setItem('tiktok_user', JSON.stringify(data.user));
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            setStatus('error');
+            setErrorMessage(data.error_description || data.error);
+          } else {
+            setStatus('success');
+            if (data.user) {
+              setUserInfo(data.user);
+              localStorage.setItem('tiktok_user', JSON.stringify(data.user));
+            }
           }
-        }
-      })
-      .catch(err => {
-        setStatus('error');
-        setErrorMessage(err.message);
-      });
+        })
+        .catch(err => {
+          setStatus('error');
+          setErrorMessage(err.message);
+        });
     }
   }, [code, status]);
 
@@ -543,16 +544,16 @@ const CallbackPage = () => {
           </div>
         </div>
         <h2 className="mb-4">{status === 'error' ? 'Authentication Failed' : status === 'success' ? 'Authentication Successful' : 'Processing...'}</h2>
-        
+
         {code && (
           <div className="mt-4 mb-8 text-left" style={{ maxWidth: 400, margin: '0 auto 2rem auto', background: 'var(--surface-light)', padding: '1.5rem', borderRadius: '8px' }}>
             <label className="form-label" style={{ color: 'var(--secondary)' }}>Authorization Code</label>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-              <input 
-                type="text" 
-                className="form-control" 
-                value={code} 
-                readOnly 
+              <input
+                type="text"
+                className="form-control"
+                value={code}
+                readOnly
                 style={{ flex: 1, fontFamily: 'monospace' }}
               />
               <button onClick={copyToClipboard} className="btn btn-primary" type="button">
@@ -574,7 +575,7 @@ const CallbackPage = () => {
                 )}
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff' }}>{userInfo.display_name || 'TikTok User'}</div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Connected Sandbox Account</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Connected Account</div>
                 </div>
               </div>
             ) : (
@@ -688,15 +689,15 @@ const Navigation = () => {
         <Link to="/content-post" className={`nav-link ${isActive('/content-post')}`}>
           Content Post
         </Link>
-        <a 
-          href="https://crmkg.vercel.app/privacy" 
+        <a
+          href="https://crmkg.vercel.app/privacy"
           className={`nav-link ${isActive('/privacy')}`}
           onClick={(e) => handleAbsoluteNavigation(e, '/privacy')}
         >
           Privacy
         </a>
-        <a 
-          href="https://crmkg.vercel.app/terms" 
+        <a
+          href="https://crmkg.vercel.app/terms"
           className={`nav-link ${isActive('/terms')}`}
           onClick={(e) => handleAbsoluteNavigation(e, '/terms')}
         >
