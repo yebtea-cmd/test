@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogIn, Video, CheckCircle, UploadCloud, PlayCircle, BarChart3, Users } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import logoImg from './assets/images/logo.png';
 
 // --- Pages ---
@@ -183,7 +183,24 @@ const ContentPostPage = () => {
   
   const [consentChecked, setConsentChecked] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+
+  const previewUrl = useMemo(() => {
+    return mediaFile ? URL.createObjectURL(mediaFile) : null;
+  }, [mediaFile]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setMediaFile(file);
+  };
 
   useEffect(() => {
     const user = localStorage.getItem('tiktok_user');
@@ -256,7 +273,7 @@ const ContentPostPage = () => {
       alert("Content submitted successfully to TikTok! It may take a few minutes for the content to process and be visible on your profile.");
       setIsUploading(false);
       setTitle('');
-      setPreviewUrl(null);
+      setMediaFile(null);
     }, 2000);
   };
 
@@ -300,7 +317,15 @@ const ContentPostPage = () => {
                   <UploadCloud size={48} className="upload-icon" style={{ margin: '0 auto', color: 'var(--primary)', marginBottom: '1rem' }} />
                   <h4>Drag & drop your {postType} here</h4>
                   <p className="text-muted mt-2">{postType === 'video' ? 'MP4 or WebM, up to 10 minutes' : 'JPG or PNG image'}</p>
-                  <button type="button" className="btn btn-outline mt-4" onClick={() => setPreviewUrl(postType === 'video' ? 'https://www.w3schools.com/html/mov_bbb.mp4' : 'https://picsum.photos/400/300')}>Mock Upload Preview</button>
+                  <label className="btn btn-outline mt-4" style={{ cursor: 'pointer', display: 'inline-block' }}>
+                    Select File
+                    <input 
+                      type="file" 
+                      accept={postType === 'video' ? 'video/mp4,video/webm' : 'image/jpeg,image/png'} 
+                      onChange={handleFileChange} 
+                      style={{ display: 'none' }} 
+                    />
+                  </label>
                 </>
               ) : (
                 <div style={{ textAlign: 'center' }}>
@@ -309,8 +334,13 @@ const ContentPostPage = () => {
                   ) : (
                     <img src={previewUrl} alt="Preview" style={{ maxHeight: 200, maxWidth: '100%', borderRadius: '8px' }} />
                   )}
+                  {mediaFile && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Selected: {mediaFile.name} ({(mediaFile.size / 1024 / 1024).toFixed(2)} MB)
+                    </div>
+                  )}
                   <div className="mt-4">
-                    <button type="button" className="btn btn-outline" onClick={() => setPreviewUrl(null)}>Remove Preview</button>
+                    <button type="button" className="btn btn-outline" onClick={() => setMediaFile(null)}>Remove File</button>
                   </div>
                 </div>
               )}
