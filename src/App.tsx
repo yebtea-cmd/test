@@ -77,7 +77,7 @@ const LoginKitPage = () => {
   const handleLogin = () => {
     setIsLoggingIn(true);
     
-    const CLIENT_KEY = import.meta.env.VITE_TIKTOK_CLIENT_KEY || 'awkisbm5h330o786';
+    const CLIENT_KEY = 'awkisbm5h330o786';
     const REDIRECT_URI = 'https://crmkg.vercel.app/callback';
     const csrfState = Math.random().toString(36).substring(2);
     
