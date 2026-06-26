@@ -74,21 +74,48 @@ const LoginKitPage = () => {
     }
   }, []);
 
-  const handleLogin = () => {
+  function makeCodeVerifier() {
+    const randomBytes = new Uint8Array(64);
+    crypto.getRandomValues(randomBytes);
+    return base64UrlEncode(randomBytes);
+  }
+
+  async function makeCodeChallenge(codeVerifier: string) {
+    const data = new TextEncoder().encode(codeVerifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return base64UrlEncode(new Uint8Array(digest));
+  }
+
+  function base64UrlEncode(bytes: Uint8Array) {
+    const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join('');
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/u, '');
+  }
+
+  const handleLogin = async () => {
     setIsLoggingIn(true);
 
     const CLIENT_KEY = 'awkisbm5h330o786';
     const REDIRECT_URI = `${window.location.origin}/callback`;
     const csrfState = Math.random().toString(36).substring(2);
+    
+    const codeVerifier = makeCodeVerifier();
+    const codeChallenge = await makeCodeChallenge(codeVerifier);
 
-    let url = 'https://www.tiktok.com/v2/auth/authorize/';
-    url += `?client_key=${CLIENT_KEY}`;
-    url += '&scope=user.info.basic';
-    url += '&response_type=code';
-    url += `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
-    url += `&state=${csrfState}`;
+    sessionStorage.setItem('tiktok_oauth_state', csrfState);
+    sessionStorage.setItem('tiktok_code_verifier', codeVerifier);
 
-    window.location.href = url;
+    const params = new URLSearchParams({
+      client_key: CLIENT_KEY,
+      response_type: 'code',
+      scope: 'user.info.basic',
+      redirect_uri: REDIRECT_URI,
+      state: csrfState,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
+      disable_auto_auth: '1',
+    });
+
+    window.location.href = `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
   };
 
   return (
@@ -496,10 +523,11 @@ const CallbackPage = () => {
     // or we can still do it. For now, let's keep the backend exchange but also show the code.
     if (code && status === 'processing') {
       const redirectUri = `${window.location.origin}/callback`;
+      const codeVerifier = sessionStorage.getItem('tiktok_code_verifier') || '';
       fetch('/api/tiktok-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, redirect_uri: redirectUri })
+        body: JSON.stringify({ code, redirect_uri: redirectUri, code_verifier: codeVerifier })
       })
         .then(res => res.json())
         .then(data => {
