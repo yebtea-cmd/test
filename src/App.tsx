@@ -157,17 +157,106 @@ const LoginKitPage = () => {
   );
 };
 
+const IS_DIRECT_POST_AUDITED = import.meta.env.VITE_TIKTOK_DIRECT_POST_AUDITED === 'true';
+const AUDIT_PRIVACY_MESSAGE = 'Cannot post with Public or Friend privacy yet. TikTok requires Direct Post audit approval for public/friend visibility. Choose Only Me to publish now.';
+
+const privacyLabels: Record<string, string> = {
+  PUBLIC_TO_EVERYONE: 'Public',
+  MUTUAL_FOLLOW_FRIENDS: 'Friend',
+  FOLLOWER_OF_CREATOR: 'Followers',
+  SELF_ONLY: 'Only Me',
+};
+
 const ContentPostPage = () => {
+  const [savedUser, setSavedUser] = useState<any>(null);
+  const [postType, setPostType] = useState<'video' | 'photo'>('video');
   const [title, setTitle] = useState('');
+  const [privacyLevel, setPrivacyLevel] = useState('');
+  const [allowComment, setAllowComment] = useState(false);
+  const [allowDuet, setAllowDuet] = useState(false);
+  const [allowStitch, setAllowStitch] = useState(false);
+  
+  const [commercialToggle, setCommercialToggle] = useState(false);
+  const [yourBrand, setYourBrand] = useState(false);
+  const [brandedContent, setBrandedContent] = useState(false);
+  const [aiGenerated, setAiGenerated] = useState(false);
+  
+  const [consentChecked, setConsentChecked] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const user = localStorage.getItem('tiktok_user');
+    if (user) {
+      try {
+        setSavedUser(JSON.parse(user));
+      } catch (e) {}
+    }
+  }, []);
+
+  const availablePrivacyOptions = savedUser?.privacy_level_options || ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'SELF_ONLY'];
+
+  const needsAuditPrivacy = !IS_DIRECT_POST_AUDITED && privacyLevel && privacyLevel !== 'SELF_ONLY';
+
+  const handleCommercialToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCommercialToggle(e.target.checked);
+    if (!e.target.checked) {
+      setYourBrand(false);
+      setBrandedContent(false);
+    }
+  };
+
+  const handlePrivacyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setPrivacyLevel(e.target.value);
+  };
+
+  const handleBrandedContentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setBrandedContent(checked);
+    if (checked && privacyLevel === 'SELF_ONLY') {
+      setPrivacyLevel('');
+    }
+  };
+
+  let declarationText = "By posting, you agree to TikTok's Music Usage Confirmation.";
+  if (commercialToggle && (brandedContent || yourBrand)) {
+     if (brandedContent) {
+       declarationText = "By posting, you agree to TikTok's Branded Content Policy and Music Usage Confirmation.";
+     } else {
+       declarationText = "By posting, you agree to TikTok's Music Usage Confirmation.";
+     }
+  }
+
+  const isPublishDisabled = 
+    isUploading || 
+    !privacyLevel || 
+    needsAuditPrivacy ||
+    (commercialToggle && !yourBrand && !brandedContent) || 
+    !consentChecked;
+
+  const publishDisabledMessage = needsAuditPrivacy
+    ? AUDIT_PRIVACY_MESSAGE
+    : (commercialToggle && !yourBrand && !brandedContent)
+      ? 'You need to indicate if your content promotes yourself, a third party, or both.'
+      : !privacyLevel
+        ? 'Choose a privacy option returned by TikTok creator info.'
+        : '';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPublishDisabled) return;
+    
+    if (needsAuditPrivacy) {
+      alert(AUDIT_PRIVACY_MESSAGE);
+      return;
+    }
+
     setIsUploading(true);
     setTimeout(() => {
-      alert("Video submitted successfully to TikTok!");
+      alert("Content submitted successfully to TikTok! It may take a few minutes for the content to process and be visible on your profile.");
       setIsUploading(false);
       setTitle('');
+      setPreviewUrl(null);
     }, 2000);
   };
 
@@ -175,54 +264,185 @@ const ContentPostPage = () => {
     <div className="dashboard-layout">
       <div>
         <h2 className="mb-2">Create New Post</h2>
-        <p className="text-muted mb-8">Upload your video and configure posting options.</p>
+        <p className="text-muted mb-8">Upload your content and configure posting options directly to TikTok.</p>
+
+        {savedUser ? (
+          <div className="card mb-6" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem' }}>
+            <img src={savedUser.avatar_url || 'https://via.placeholder.com/50'} alt="Profile" style={{ width: 50, height: 50, borderRadius: '50%', border: '2px solid var(--secondary)' }} />
+            <div>
+              <div style={{ fontWeight: 'bold' }}>{savedUser.display_name || 'TikTok User'}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>@{savedUser.username || savedUser.display_name?.toLowerCase().replace(/\s/g, '') || 'username'}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="card mb-6 p-4" style={{ backgroundColor: 'rgba(255,152,0,0.1)', color: '#ff9800', border: '1px solid rgba(255,152,0,0.3)' }}>
+            <strong>Warning:</strong> You are not logged in. Please connect your TikTok account first.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="card">
+          <div className="form-group mb-6" style={{ display: 'flex', gap: '2rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}>
+              <input type="radio" checked={postType === 'video'} onChange={() => setPostType('video')} style={{ accentColor: 'var(--primary)' }} />
+              <span>Video Post</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}>
+              <input type="radio" checked={postType === 'photo'} onChange={() => { setPostType('photo'); setAllowDuet(false); setAllowStitch(false); }} style={{ accentColor: 'var(--primary)' }} />
+              <span>Photo Post</span>
+            </label>
+          </div>
+
           <div className="form-group">
-            <label className="form-label">Upload Video</label>
-            <div className="upload-area">
-              <UploadCloud size={48} className="upload-icon" />
-              <h4>Drag & drop your video here</h4>
-              <p className="text-muted mt-2">MP4 or WebM, up to 10 minutes</p>
-              <button type="button" className="btn btn-outline mt-4">Browse Files</button>
+            <label className="form-label">Upload {postType === 'video' ? 'Video' : 'Photo'}</label>
+            <div className="upload-area" style={{ position: 'relative', border: '2px dashed var(--border)', borderRadius: '12px', padding: '2rem', textAlign: 'center' }}>
+              {!previewUrl ? (
+                <>
+                  <UploadCloud size={48} className="upload-icon" style={{ margin: '0 auto', color: 'var(--primary)', marginBottom: '1rem' }} />
+                  <h4>Drag & drop your {postType} here</h4>
+                  <p className="text-muted mt-2">{postType === 'video' ? 'MP4 or WebM, up to 10 minutes' : 'JPG or PNG image'}</p>
+                  <button type="button" className="btn btn-outline mt-4" onClick={() => setPreviewUrl(postType === 'video' ? 'https://www.w3schools.com/html/mov_bbb.mp4' : 'https://picsum.photos/400/300')}>Mock Upload Preview</button>
+                </>
+              ) : (
+                <div style={{ textAlign: 'center' }}>
+                  {postType === 'video' ? (
+                    <video src={previewUrl} controls style={{ maxHeight: 200, maxWidth: '100%', borderRadius: '8px' }} />
+                  ) : (
+                    <img src={previewUrl} alt="Preview" style={{ maxHeight: 200, maxWidth: '100%', borderRadius: '8px' }} />
+                  )}
+                  <div className="mt-4">
+                    <button type="button" className="btn btn-outline" onClick={() => setPreviewUrl(null)}>Remove Preview</button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Caption</label>
+            <label className="form-label">Title / Caption</label>
             <textarea
               className="form-control"
-              rows={4}
-              placeholder="Write a catchy caption... #fyp #viral"
+              rows={3}
+              placeholder="Write a catchy title... #fyp #viral"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              required
             ></textarea>
           </div>
 
-          <div className="form-group" style={{ display: 'flex', gap: '1rem' }}>
-            <div style={{ flex: 1 }}>
-              <label className="form-label">Privacy Level</label>
-              <select className="form-control">
-                <option value="public">Public</option>
-                <option value="friends">Friends Only</option>
-                <option value="private">Private</option>
+          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div>
+              <label className="form-label">Privacy Level *</label>
+              <select className="form-control" value={privacyLevel} onChange={handlePrivacyChange} required>
+                <option value="">Select privacy</option>
+                {availablePrivacyOptions.map((option: string) => {
+                  const brandedContentBlocksPrivate = commercialToggle && brandedContent && option === 'SELF_ONLY';
+                  return (
+                    <option
+                      disabled={brandedContentBlocksPrivate}
+                      key={option}
+                      title={brandedContentBlocksPrivate ? 'Branded content visibility cannot be set to private.' : ''}
+                      value={option}
+                    >
+                      {privacyLabels[option] || option}
+                      {brandedContentBlocksPrivate ? ' — unavailable for branded content' : ''}
+                    </option>
+                  );
+                })}
               </select>
+              {commercialToggle && brandedContent && (
+                <p className="mt-2" style={{ color: '#ff4d4f', fontSize: '0.85rem' }} title="Branded content visibility cannot be set to private.">
+                  Only Me is disabled: Branded content visibility cannot be set to private.
+                </p>
+              )}
             </div>
-            <div style={{ flex: 1 }}>
-              <label className="form-label">Allow Comments</label>
-              <select className="form-control">
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
+
+            <div>
+              <label className="form-label">Interaction Abilities</label>
+              <div style={{ display: 'flex', gap: '2rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={allowComment} onChange={(e) => setAllowComment(e.target.checked)} style={{ accentColor: 'var(--primary)' }} />
+                  Allow Comment
+                </label>
+                {postType === 'video' && (
+                  <>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={allowDuet} onChange={(e) => setAllowDuet(e.target.checked)} style={{ accentColor: 'var(--primary)' }} />
+                      Allow Duet
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={allowStitch} onChange={(e) => setAllowStitch(e.target.checked)} style={{ accentColor: 'var(--primary)' }} />
+                      Allow Stitch
+                    </label>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="mt-8" style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-            <button type="button" className="btn btn-outline">Save Draft</button>
-            <button type="submit" className="btn btn-primary" disabled={isUploading}>
-              {isUploading ? 'Publishing...' : 'Publish to TikTok'}
-            </button>
+          <div className="form-group" style={{ background: 'var(--surface-light)', padding: '1.5rem', borderRadius: '8px', marginTop: '1rem', border: '1px solid var(--border)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem' }}>
+              <input type="checkbox" checked={commercialToggle} onChange={handleCommercialToggle} style={{ accentColor: 'var(--primary)', transform: 'scale(1.2)' }} />
+              Disclose Commercial Content
+            </label>
+            <p className="text-muted mt-2" style={{ fontSize: '0.9rem' }}>Indicate whether this content promotes yourself, a brand, product or service.</p>
+            
+            {commercialToggle && (
+              <div className="mt-4" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', paddingLeft: '1.5rem', borderLeft: '2px solid var(--primary)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} title="Your photo/video will be labeled as 'Promotional content'">
+                  <input type="checkbox" checked={yourBrand} onChange={(e) => setYourBrand(e.target.checked)} style={{ accentColor: 'var(--primary)' }} />
+                  Your Brand (Promoting yourself or your business)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} title={privacyLevel === 'SELF_ONLY' ? "Branded content visibility cannot be set to private." : ''}>
+                  <input type="checkbox" checked={brandedContent} disabled={privacyLevel === 'SELF_ONLY'} onChange={handleBrandedContentChange} style={{ accentColor: 'var(--primary)' }} />
+                  Branded Content (Promoting another brand or third party)
+                </label>
+                {(!yourBrand && !brandedContent) && (
+                  <div style={{ color: '#ff4d4f', fontSize: '0.85rem', marginTop: '0.5rem', background: 'rgba(255,77,79,0.1)', padding: '0.5rem', borderRadius: '4px' }}>
+                    Hover notification: "You need to indicate if your content promotes yourself, a third party, or both."
+                  </div>
+                )}
+                {(yourBrand || brandedContent) && (
+                  <div style={{ marginTop: '0.5rem', color: 'var(--secondary)', fontSize: '0.9rem', background: 'rgba(0, 242, 254, 0.1)', padding: '0.5rem', borderRadius: '4px' }}>
+                    Label to be displayed on TikTok: <strong>{(yourBrand && brandedContent) ? 'Paid partnership' : (brandedContent ? 'Paid partnership' : 'Promotional content')}</strong>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {postType === 'video' && (
+            <div className="form-group" style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginTop: '1rem' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
+                <input type="checkbox" checked={aiGenerated} onChange={(e) => setAiGenerated(e.target.checked)} style={{ accentColor: 'var(--primary)' }} />
+                This video is AI-generated
+              </label>
+              {aiGenerated && (
+                <p className="text-muted mt-1" style={{ fontSize: '0.85rem' }}>
+                  Your video will be labeled as 'Creator labeled as AI-generated'
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="form-group mt-6" style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem', cursor: 'pointer', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px' }}>
+               <input type="checkbox" checked={consentChecked} onChange={(e) => setConsentChecked(e.target.checked)} style={{ marginTop: '4px', accentColor: 'var(--primary)', transform: 'scale(1.2)' }} required />
+               <span style={{ fontSize: '0.95rem', fontWeight: '500', color: 'var(--text)' }}>
+                 {declarationText}
+               </span>
+             </label>
+          </div>
+
+          <div className="mt-8" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+            <span title={publishDisabledMessage}>
+              <button type="submit" className="btn btn-primary" disabled={isPublishDisabled} style={{ padding: '0.75rem 2rem', fontSize: '1rem' }}>
+                {isUploading ? 'Publishing...' : 'Publish to TikTok'}
+              </button>
+            </span>
+            {needsAuditPrivacy && (
+              <p style={{ color: '#ff4d4f', fontSize: '0.85rem', maxWidth: '300px', textAlign: 'right' }}>
+                {AUDIT_PRIVACY_MESSAGE}
+              </p>
+            )}
           </div>
         </form>
       </div>
