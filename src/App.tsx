@@ -83,7 +83,7 @@ const LoginKitPage = () => {
 
     let url = 'https://www.tiktok.com/v2/auth/authorize/';
     url += `?client_key=${CLIENT_KEY}`;
-    url += '&scope=user.info.basic,video.publish';
+    url += '&scope=user.info.basic';
     url += '&response_type=code';
     url += `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
     url += `&state=${csrfState}`;
@@ -138,13 +138,6 @@ const LoginKitPage = () => {
                   <div>
                     <strong style={{ color: 'var(--text)', display: 'block', fontSize: '0.9rem' }}>user.info.basic</strong>
                     <span style={{ fontSize: '0.85rem' }}>Read your profile info (avatar, display name)</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--text-muted)' }}>
-                  <CheckCircle size={18} color="var(--secondary)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <strong style={{ color: 'var(--text)', display: 'block', fontSize: '0.9rem' }}>video.publish</strong>
-                    <span style={{ fontSize: '0.85rem' }}>Publish videos and photos to your account</span>
                   </div>
                 </div>
               </div>
