@@ -55,6 +55,12 @@ export default async function handler(req, res) {
     
     const userData = await userResponse.json();
 
+    const cookies = [
+      `tiktok_access_token=${accessToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`,
+      `tiktok_refresh_token=${data.refresh_token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000`
+    ];
+    res.setHeader('Set-Cookie', cookies);
+
     // Return success and user data to the frontend
     return res.status(200).json({ 
       success: true, 

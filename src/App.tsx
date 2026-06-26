@@ -195,6 +195,22 @@ const privacyLabels: Record<string, string> = {
   SELF_ONLY: 'Only Me',
 };
 
+const MAX_UPLOAD_CHUNK_SIZE = 64 * 1024 * 1024;
+const PUBLISH_POLL_INTERVAL_MS = 2000;
+const MAX_PUBLISH_POLLS = 30;
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dbfdc4chj';
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'summitkg_photos';
+
+function getUploadParts(fileSize: number) {
+  if (fileSize <= MAX_UPLOAD_CHUNK_SIZE) {
+    return { chunkSize: fileSize, totalChunkCount: 1 };
+  }
+  return {
+    chunkSize: MAX_UPLOAD_CHUNK_SIZE,
+    totalChunkCount: Math.ceil(fileSize / MAX_UPLOAD_CHUNK_SIZE),
+  };
+}
+
 const ContentPostPage = () => {
   const [savedUser, setSavedUser] = useState<any>(null);
   const [postType, setPostType] = useState<'video' | 'photo'>('video');
@@ -212,6 +228,8 @@ const ContentPostPage = () => {
 
   const [consentChecked, setConsentChecked] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [publishStatus, setPublishStatus] = useState('Ready');
+  const [publishId, setPublishId] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
 
   const previewUrl = useMemo(() => {
@@ -288,9 +306,52 @@ const ContentPostPage = () => {
         ? 'Choose a privacy option returned by TikTok creator info.'
         : '';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const pollPublishStatus = async (nextPublishId: string) => {
+    setPublishStatus('Processing on TikTok...');
+
+    for (let attempt = 0; attempt < MAX_PUBLISH_POLLS; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, PUBLISH_POLL_INTERVAL_MS));
+
+      const response = await fetch('/api/tiktok-publish-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publish_id: nextPublishId }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok || (payload?.error?.code && payload.error.code !== 'ok')) {
+        const code = payload?.error?.code;
+        const msg = payload?.error?.message || code || 'TikTok status check failed.';
+        throw new Error(msg);
+      }
+
+      const status = payload?.data?.status;
+      if (status === 'PUBLISH_COMPLETE') {
+        setPublishStatus('Successfully posted to TikTok. It may take a few minutes to appear on your profile.');
+        setIsUploading(false);
+        setMediaFile(null);
+        setTitle('');
+        return;
+      }
+
+      if (status === 'FAILED') {
+        throw new Error(`TikTok could not publish this content: ${payload?.data?.fail_reason || 'unknown reason'}.`);
+      }
+
+      setPublishStatus(
+        status === 'PROCESSING_DOWNLOAD'
+          ? 'TikTok is downloading media from the verified URL...'
+          : 'TikTok is processing the upload...'
+      );
+    }
+
+    setPublishStatus('TikTok is still processing this post. It may take a few minutes to appear on your profile.');
+    setIsUploading(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isPublishDisabled) return;
+    if (isPublishDisabled || !mediaFile) return;
 
     if (needsAuditPrivacy) {
       alert(AUDIT_PRIVACY_MESSAGE);
@@ -298,12 +359,115 @@ const ContentPostPage = () => {
     }
 
     setIsUploading(true);
-    setTimeout(() => {
-      alert("Content submitted successfully to TikTok! It may take a few minutes for the content to process and be visible on your profile.");
+    setPublishStatus('Initializing TikTok upload...');
+    setPublishId('');
+
+    const postInfo = {
+      title: title.trim(),
+      privacy_level: privacyLevel,
+      disable_comment: !allowComment,
+      disable_duet: postType === 'video' ? !allowDuet : undefined,
+      disable_stitch: postType === 'video' ? !allowStitch : undefined,
+      auto_add_music: postType === 'photo' ? autoAddMusic : undefined,
+      brand_content_toggle: brandedContent,
+      brand_organic_toggle: yourBrand,
+      is_aigc: aiGenerated,
+    };
+
+    try {
+      let sourceInfo;
+      let verifiedUrl = '';
+
+      if (postType === 'photo') {
+        setPublishStatus('Uploading photo to verified media storage...');
+        const formData = new FormData();
+        formData.append('file', mediaFile);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+        const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+        const cloudinaryPayload = await cloudinaryResponse.json();
+
+        if (!cloudinaryResponse.ok || !cloudinaryPayload?.secure_url) {
+          throw new Error(cloudinaryPayload?.error?.message || 'Cloudinary could not upload this photo.');
+        }
+
+        verifiedUrl = cloudinaryPayload.secure_url.replace('/image/upload/', '/image/upload/f_jpg,q_auto/');
+        
+        sourceInfo = {
+          source: 'PULL_FROM_URL',
+          media_url: verifiedUrl,
+        };
+        setPublishStatus('Initializing TikTok photo post...');
+      } else {
+        const { chunkSize, totalChunkCount } = getUploadParts(mediaFile.size);
+        sourceInfo = {
+          source: 'FILE_UPLOAD',
+          video_size: mediaFile.size,
+          chunk_size: chunkSize,
+          total_chunk_count: totalChunkCount,
+        };
+      }
+
+      const response = await fetch('/api/tiktok-direct-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          media_type: postType,
+          post_info: postInfo,
+          source_info: sourceInfo,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok || (payload?.error?.code && payload.error.code !== 'ok')) {
+        throw new Error(payload?.error?.message || payload?.error?.code || 'TikTok publishing failed.');
+      }
+
+      if (sourceInfo.source === 'FILE_UPLOAD') {
+        const uploadUrl = payload?.data?.upload_url;
+        if (!uploadUrl) {
+          throw new Error('TikTok did not return a video upload URL.');
+        }
+
+        const { chunkSize, totalChunkCount } = getUploadParts(mediaFile.size);
+        setPublishStatus('Uploading video to TikTok...');
+
+        for (let index = 0; index < totalChunkCount; index += 1) {
+          const start = index * chunkSize;
+          const end = index === totalChunkCount - 1 ? mediaFile.size : Math.min(start + chunkSize, mediaFile.size);
+          const chunk = mediaFile.slice(start, end);
+          
+          const uploadResponse = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': mediaFile.type || 'video/mp4',
+              'Content-Range': `bytes ${start}-${end - 1}/${mediaFile.size}`,
+            },
+            body: chunk,
+          });
+
+          if (!uploadResponse.ok && uploadResponse.status !== 206) {
+            throw new Error(`TikTok video upload failed (${uploadResponse.status}).`);
+          }
+        }
+      }
+
+      const nextPublishId = payload?.data?.publish_id || payload?.publish_id;
+      if (!nextPublishId) {
+        throw new Error('TikTok did not return a publish ID.');
+      }
+
+      setPublishId(nextPublishId);
+      await pollPublishStatus(nextPublishId);
+
+    } catch (error: any) {
+      setPublishId('');
+      setPublishStatus(error.message || 'TikTok publishing failed. Please try again.');
       setIsUploading(false);
-      setTitle('');
-      setMediaFile(null);
-    }, 2000);
+    }
   };
 
   return (
@@ -507,6 +671,18 @@ const ContentPostPage = () => {
               <p style={{ color: '#ff4d4f', fontSize: '0.85rem', maxWidth: '300px', textAlign: 'right' }}>
                 {AUDIT_PRIVACY_MESSAGE}
               </p>
+            )}
+            
+            {(publishStatus !== 'Ready' || publishId) && (
+              <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--surface-light)', borderRadius: '8px', border: '1px solid var(--border)', width: '100%', maxWidth: '500px', textAlign: 'left' }}>
+                <p style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--text)' }}>Publish Status</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{publishStatus}</p>
+                {publishId && (
+                  <p style={{ color: 'var(--secondary)', fontSize: '0.85rem', marginTop: '0.5rem', fontFamily: 'monospace' }}>
+                    Publish ID: {publishId}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </form>
