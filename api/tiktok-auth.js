@@ -12,8 +12,8 @@ export default async function handler(req, res) {
 
   try {
     // Read credentials from Vercel Environment Variables
-    const clientKey = process.env.VITE_TIKTOK_CLIENT_KEY || 'sbawai0vsrgtqtuauz';
-    const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
+    const clientKey = process.env.VITE_TIKTOK_CLIENT_KEY || 'awkisbm5h330o786';
+    const clientSecret = process.env.TIKTOK_CLIENT_SECRET || 'N3VXNsuwZLMa01SPLUgnjOgB2g3wl0Rq';
     const redirectUri = 'https://crmkg.vercel.app/callback';
 
     // Call TikTok's v2/oauth/token endpoint securely from the backend
