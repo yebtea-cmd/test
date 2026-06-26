@@ -199,7 +199,7 @@ const MAX_UPLOAD_CHUNK_SIZE = 64 * 1024 * 1024;
 const PUBLISH_POLL_INTERVAL_MS = 2000;
 const MAX_PUBLISH_POLLS = 30;
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dbfdc4chj';
-const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'summitkg_photos';
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'crmkg_photos';
 
 function getUploadParts(fileSize: number) {
   if (fileSize <= MAX_UPLOAD_CHUNK_SIZE) {
