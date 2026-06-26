@@ -203,6 +203,7 @@ const ContentPostPage = () => {
   const [allowComment, setAllowComment] = useState(false);
   const [allowDuet, setAllowDuet] = useState(false);
   const [allowStitch, setAllowStitch] = useState(false);
+  const [autoAddMusic, setAutoAddMusic] = useState(false);
 
   const [commercialToggle, setCommercialToggle] = useState(false);
   const [yourBrand, setYourBrand] = useState(false);
@@ -431,6 +432,12 @@ const ContentPostPage = () => {
                       Allow Stitch
                     </label>
                   </>
+                )}
+                {postType === 'photo' && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={autoAddMusic} onChange={(e) => setAutoAddMusic(e.target.checked)} style={{ accentColor: 'var(--primary)' }} />
+                    Auto-add music
+                  </label>
                 )}
               </div>
             </div>
